@@ -1,7 +1,7 @@
 import express from 'express'
 import {
-  registrarUsuario,
-  loginUsuario,
+  registerUser,
+  loginUser,
   perfilUsuario,
   loginGoogle
 } from '../controllers/auth.controller.js'
@@ -9,8 +9,8 @@ import { protectRoute } from '../middlewares/auth.middleware.js'
 
 const router = express.Router()
 
-router.post('/register', registrarUsuario)
-router.post('/login', loginUsuario)
+router.post('/register', registerUser)
+router.post('/login', loginUser)
 router.post('/google', loginGoogle)
 
 

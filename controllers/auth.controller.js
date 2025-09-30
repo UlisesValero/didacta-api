@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken'
-import { userModel } from '../models/User.js'
 import dotenv from 'dotenv'
+import { userModel } from '../models/User.js'
 import { OAuth2Client } from 'google-auth-library'
-import { validateEmail, validatePassword, validateObjectId } from '../utils/validation.js'
+import { validateEmail, validatePassword } from '../utils/validation.js'
 
 dotenv.config()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -14,7 +14,7 @@ const generarToken = (id) => {
 export const loginGoogle = async (req, res) => {
   try {
     const { id_token } = req.body
-    if (!id_token) return res.status(400).json({ message: 'Falta id_token de Google' })
+    if (!id_token) return res.status(400).json({ message: 'Id_Token from google missing' })
 
     const ticket = await client.verifyIdToken({
       idToken: id_token,
@@ -26,19 +26,17 @@ export const loginGoogle = async (req, res) => {
     if (!usuario) {
       usuario = await userModel.create({
         googleId: payload.sub,
-        nombre: payload.name,
+        name: payload.name,
         email: payload.email,
-        foto: payload.picture,
-        rol: 'empleado'
+        foto: payload.picture
       })
     }
 
     res.json({
       _id: usuario._id,
-      nombre: usuario.nombre,
+      name: usuario.name,
       email: usuario.email,
       foto: usuario.foto,
-      rol: usuario.rol,
       token: generarToken(usuario._id)
     })
   } catch (err) {
@@ -47,7 +45,7 @@ export const loginGoogle = async (req, res) => {
   }
 }
 
-export const registrarUsuario = async (req, res) => {
+export const registerUser = async (req, res) => {
   const { name, email, password } = req.body
   try {
     const existe = await userModel.findOne({ email })
@@ -76,12 +74,12 @@ export const registrarUsuario = async (req, res) => {
   }
 }
 
-export const loginUsuario = async (req, res) => {
+export const loginUser = async (req, res) => {
   const { email, password } = req.body
   try {
     const usuario = await userModel.findOne({ email })
     if (!usuario || !(await usuario.comparePassword(password))) {
-      return res.status(401).json({ message: 'Credenciales inválidas' })
+      return res.status(401).json({ message: 'Invalid credentials' })
     }
 
     res.json({
