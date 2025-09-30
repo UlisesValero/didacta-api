@@ -13,9 +13,12 @@ app.use('/api/auth', authRoutes)
 
 const PORT = 8080
 mongoose.connect(process.env.CONNECTION_STRING, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 }).then(() => {
-  console.log('✅ MongoDB connected');
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
+    console.log('✅ MongoDB connected');
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 }).catch(err => console.error('❌ Error connecting to MongoDB:', err))
+
+
+//test commit permisos
