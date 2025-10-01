@@ -8,7 +8,11 @@ dotenv.config()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 const generarToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
+  try {
+    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
+  } catch (error) {
+    return null
+  }
 }
 
 export const loginGoogle = async (req, res) => {
@@ -51,22 +55,28 @@ export const registerUser = async (req, res) => {
     const existe = await userModel.findOne({ email })
     if (existe) return res.status(400).json({ message: 'User already exists' })
 
-    if(!validateEmail(email)) {
-      return res.status(400).json({message: "Email does not meet the required format."})
+    if (!validateEmail(email)) {
+      return res.status(400).json({ message: "Email does not meet the required format." })
     }
 
-    if(!validatePassword(password)) {
-      return res.status(400).json({message: "The password does not meet the required security format."})
+    if (!validatePassword(password)) {
+      return res.status(400).json({ message: "The password does not meet the required security format." })
     }
 
-    const newUser = await userModel.create({ name, email, password })
+    const newUser = new userModel({ name, email, password })
 
+    const token = generarToken(newUser._id)
+    if (!token) {
+      return res.status(400).json({ message: "No token was generated" })
+    }
+
+    await newUser.save()
 
     res.status(201).json({
       _id: newUser._id,
       name: newUser.name,
       email: newUser.email,
-      token: generarToken(newUser._id)
+      token
     })
   } catch (err) {
     console.error('Error al registrar usuario:', err)
