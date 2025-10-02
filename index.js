@@ -7,6 +7,11 @@ import authRoutes from './routes/auth.routes.js'
 dotenv.config()
 const app = express()
 app.use(cors())
+// {
+//     origin: ["https://didacta-ai.com"],
+//     methods: ["GET", "POST", "PUT", "DELETE"],
+//     credentials: true
+// }
 app.use(express.json())
 
 app.use('/api/auth', authRoutes)
