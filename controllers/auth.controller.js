@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import { userModel } from '../models/User.js'
 import { OAuth2Client } from 'google-auth-library'
 import { validateEmail, validatePassword } from '../utils/validation.js'
+import { sendEmail } from "../utils/resend.js";
 
 dotenv.config()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -10,6 +11,14 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 const generarToken = (id) => {
   try {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
+  } catch (error) {
+    return null
+  }
+}
+
+const generarTokenReset = (email) => {
+  try {
+    return jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "15m" })
   } catch (error) {
     return null
   }
@@ -108,5 +117,60 @@ export const perfilUsuario = async (req, res) => {
     res.json(req.usuario)
   } catch (err) {
     res.status(500).json({ message: 'Error al obtener perfil' })
+  }
+}
+
+export const resetPassword = async (req, res) => {
+  const { email } = req.body
+
+  if (!email) return res.status(400).json({ message: "El correo es requerido" })
+
+  try {
+    const token = generarTokenReset(email)
+    if (!token) return res.status(500).json({ message: "Error generando el token" })
+
+    // INSERTAR DOMINIO VERDADERO - PENDIENTE - VINCULAR CON EL FETCH DEL FRONT
+    const resetLink = `http://localhost:3000/api/auth/reset-password/${token}`;
+
+    const response = await sendEmail({
+      to: email,
+      subject: "Restablece tu contraseña - Didacta",
+      text: `Haz click en el siguiente enlace para restablecer tu contraseña: ${resetLink}`,
+      html: `<p>Haz click en el siguiente enlace para restablecer tu contraseña:</p>
+             <a href="${resetLink}">${resetLink}</a>`,
+    })
+
+    if (response.success) {
+      return res.json({ message: "📩 Correo de restablecimiento enviado" })
+    } else {
+      return res.status(500).json({ message: "Error enviando el correo", error: response.error })
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Error en el servidor", error })
+  }
+}
+
+
+export const newPassword = async (req, res) => {
+  const { token, password } = req.body
+
+  if (!token || !password) {
+    return res.status(400).json({ message: "Token y nueva contraseña son requeridos" })
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    const user = await userModel.findOne({ email: decoded.email })
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" })
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    await user.save()
+
+    res.json({ message: "✅ Contraseña actualizada correctamente." })
+  } catch (error) {
+    res.status(400).json({ message: "Token inválido o expirado" })
   }
 }
