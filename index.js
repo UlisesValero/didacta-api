@@ -25,5 +25,4 @@ mongoose.connect(process.env.CONNECTION_STRING, {
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
 }).catch(err => console.error('❌ Error connecting to MongoDB:', err))
 
-
 //test commit permisos

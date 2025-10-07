@@ -1,12 +1,15 @@
-import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
+dotenv.config()
+
+import jwt from 'jsonwebtoken'
 import { userModel } from '../models/User.js'
 import { OAuth2Client } from 'google-auth-library'
 import { validateEmail, validatePassword } from '../utils/validation.js'
 import { sendEmail } from "../utils/resend.js";
 
-dotenv.config()
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+console.log(process.env.GOOGLE_CLIENT_ID)
 
 const generarToken = (id) => {
   try {

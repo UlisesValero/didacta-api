@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "test": "nodemon ./index.js"
-  },
+"scripts": {
+  "dev": "node sync-env.js && nodemon ./index.js",
+  "start": "DIDACTA_ENV=production node sync-env.js && node ./index.js",
+  "test": "node sync-env.js && nodemon ./index.js"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/UlisesValero/didacta-backend.git"
@@ -19,6 +21,8 @@
   },
   "homepage": "https://github.com/UlisesValero/didacta-backend#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.901.0",
+    "aws-sdk": "^2.1692.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
