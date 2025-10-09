@@ -12,7 +12,7 @@ export const sendEmail = async ({ to, subject, text, html }) => {
   try {
     const resend = getResend()
     const data = await resend.emails.send({
-      from: "Didacta <AGREGAR DOMINIO DIDACTA>",
+      from: "donotreply@mailservice.didacta-ai.com",
       to,
       subject,
       text,

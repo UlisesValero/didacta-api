@@ -30,6 +30,7 @@ function downloadWithCLI(bucket, key, dest) {
 
 async function main() {
     const envChoice = process.env.DIDACTA_ENV === "production" ? "production" : "development";
+    console.log(envChoice, process.env.DIDACTA_ENV);
     const bucket = "didacta";
     const isVercel = !!process.env.VERCEL;
 

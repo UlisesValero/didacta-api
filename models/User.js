@@ -6,7 +6,9 @@ export const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String },
   googleId: { type: String }, 
-  foto: { type: String },     
+  foto: { type: String },
+  resetToken: { type: String },
+  resetTokenExpire: { type: Date },     
 }, { timestamps: true })
 
 userSchema.pre('save', async function (next) {
@@ -16,8 +18,8 @@ userSchema.pre('save', async function (next) {
   next()
 })
 
-userSchema.methods.comparePassword = function (input) {
-  return bcrypt.compare(input, this.password)
+userSchema.methods.comparePassword = async function (input) {
+  return await bcrypt.compare(input, this.password)
 }
 
 export const userModel = mongoose.model('usuario', userSchema)

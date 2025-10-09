@@ -4,7 +4,8 @@ import {
   loginUser,
   perfilUsuario,
   loginGoogle,
-  resetPassword
+  resetPassword,
+  newPassword
 } from '../controllers/auth.controller.js'
 import { protectRoute } from '../middlewares/auth.middleware.js'
 
@@ -14,6 +15,7 @@ router.post('/register', registerUser)
 router.post('/login', loginUser)
 router.post('/google', loginGoogle)
 router.post('/reset-password', resetPassword)
+router.post('/new-password', newPassword)
 
 
 //proteger ruta

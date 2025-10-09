@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-"scripts": {
-  "dev": "node sync-env.js && nodemon ./index.js",
-  "start": "DIDACTA_ENV=production node sync-env.js && node ./index.js",
-  "test": "node sync-env.js && nodemon ./index.js"
-},
+  "scripts": {
+    "dev": "node sync-env.js && nodemon ./index.js",
+    "start": "DIDACTA_ENV=production node sync-env.js && node ./index.js",
+    "test": "node sync-env.js && nodemon ./index.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/UlisesValero/didacta-backend.git"
