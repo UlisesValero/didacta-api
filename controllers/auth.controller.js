@@ -60,42 +60,6 @@ export const loginGoogle = async (req, res) => {
   }
 }
 
-export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body
-  try {
-    const existe = await userModel.findOne({ email })
-    if (existe) return res.status(400).json({ message: 'User already exists' })
-
-    if (!validateEmail(email)) {
-      return res.status(400).json({ message: "Email does not meet the required format." })
-    }
-
-    if (!validatePassword(password)) {
-      return res.status(400).json({ message: "The password does not meet the required security format." })
-    }
-
-    const newUser = new userModel({ name, email, password })
-
-    const token = generarToken(newUser._id)
-    if (!token) {
-      return res.status(400).json({ message: "No token was generated" })
-    }
-
-    console.log(token)
-
-    await newUser.save()
-
-    res.status(201).json({
-      _id: newUser._id,
-      name: newUser.name,
-      email: newUser.email,
-      token
-    })
-  } catch (err) {
-    console.error('Error al registrar usuario:', err)
-    res.status(500).json({ message: 'Error al registrar usuario' })
-  }
-}
 
 export const loginUser = async (req, res) => {
   const { email, password } = req.body
@@ -196,5 +160,120 @@ export const newPassword = async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(400).json({ message: "Token inválido o expirado" })
+  }
+}
+
+const verificationCodes = new Map()
+const pendingUsers = new Map()
+
+// INSERTAR HTML AL CUERPO DEL CORREO ELECTRÓNICO
+export const verificationEmail = async (req, res) => {
+  const { name, email, password } = req.body
+
+  if (!email || !name || !password)
+    return res.status(400).json({ success: false, message: "Datos incompletos" })
+
+  try {
+    const existe = await userModel.findOne({ email })
+    if (existe)
+      return res.status(400).json({ success: false, message: "El usuario ya existe" })
+
+    if (!validateEmail(email))
+      return res.status(400).json({ success: false, message: "Formato de email inválido" })
+
+    if (!validatePassword(password))
+      return res.status(400).json({ success: false, message: "Contraseña insegura" })
+
+    const code = Math.floor(10000 + Math.random() * 90000).toString()
+    verificationCodes.set(email, code)
+    pendingUsers.set(email, { name, password })
+
+    const verificationEmail = await sendEmail({
+      to: email,
+      subject: "Código de verificación Didacta",
+      text: `Tu código de verificación es: ${code}`,
+    })
+
+    if (verificationEmail.success)
+      return res.json({ success: true, message: "📩 Código enviado a tu correo" })
+    else
+      return res.status(500).json({ success: false, message: "Error enviando el correo" })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, message: "Error en el servidor" })
+  }
+}
+
+export const verifyCode = async (req, res) => {
+  const { email, code } = req.body
+  if (!email || !code)
+    return res.status(400).json({ success: false, message: "Datos incompletos" })
+
+  const storedCode = verificationCodes.get(email)
+  if (!storedCode)
+    return res.status(400).json({ success: false, message: "No hay código asociado" })
+
+  if (storedCode !== code)
+    return res.status(400).json({ success: false, message: "Código incorrecto" })
+
+  const pending = pendingUsers.get(email)
+  if (!pending)
+    return res.status(400).json({ success: false, message: "No hay registro pendiente" })
+
+  try {
+    const newUser = new userModel({
+      name: pending.name,
+      email,
+      password: pending.password,
+    })
+
+    const token = generarToken(newUser._id)
+    await newUser.save()
+
+    verificationCodes.delete(email)
+    pendingUsers.delete(email)
+
+    return res.json({
+      success: true,
+      message: "✅ Usuario verificado y registrado",
+      token,
+    })
+  } catch (err) {
+    console.error("Error al registrar usuario:", err)
+    res.status(500).json({ success: false, message: "Error creando usuario" })
+  }
+}
+
+// ESTO ES SIN CODIGO DE VERIFICACIÓN, ES DECIR, FLUJO DIRECTO. REMOVER ? HABLAR CON REDO
+export const registerUser = async (req, res) => {
+  const { name, email, password } = req.body
+  try {
+    const existe = await userModel.findOne({ email })
+    if (existe)
+      return res.status(400).json({ message: "User already exists" })
+
+    if (!validateEmail(email))
+      return res.status(400).json({ message: "Email does not meet the required format." })
+
+    if (!validatePassword(password))
+      return res.status(400).json({ message: "The password does not meet the required security format." })
+
+    const newUser = new userModel({ name, email, password })
+    const token = generarToken(newUser._id)
+
+    if (!token)
+      return res.status(400).json({ message: "No token was generated" })
+
+    await newUser.save()
+
+    res.status(201).json({
+      _id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      token,
+    })
+  } catch (err) {
+    console.error("Error al registrar usuario:", err)
+    res.status(500).json({ message: "Error al registrar usuario" })
   }
 }
