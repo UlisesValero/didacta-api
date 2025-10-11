@@ -1,13 +1,13 @@
 import express from 'express'
 import {
-  // registerUser,
-  loginUser,
-  perfilUsuario,
-  loginGoogle,
-  resetPassword,
-  newPassword,
-  verificationEmail,
-  verifyCode
+    // registerUser,
+    loginUser,
+    perfilUsuario,
+    loginGoogle,
+    resetPassword,
+    newPassword,
+    verificationEmail,
+    verifyCode
 } from '../controllers/auth.controller.js'
 import { protectRoute } from '../middlewares/auth.middleware.js'
 
