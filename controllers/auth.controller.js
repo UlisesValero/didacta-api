@@ -3,6 +3,7 @@ dotenv.config()
 
 import jwt from 'jsonwebtoken'
 import { userModel } from '../models/User.js'
+import { tempCodeModel } from '../models/Temp_Code.js'
 import { OAuth2Client } from 'google-auth-library'
 import { validateEmail, validatePassword } from '../utils/validation.js'
 import { sendEmail } from "../utils/resend.js";
@@ -60,7 +61,6 @@ export const loginGoogle = async (req, res) => {
     }
 }
 
-
 export const loginUser = async (req, res) => {
     const { email, password } = req.body
     console.log(req.body)
@@ -103,7 +103,7 @@ export const resetPassword = async (req, res) => {
         await user.save()
 
         //REEMPLAZAR POR DOMINIO DE DIDACTA (CONSULTAR CON REDO)
-        const resetLink = process.env.APP_URL + `/reset-password/${token}`
+        const resetLink = process.env.APP_URL + `/new-password/${token}`
 
         const response = await sendEmail({
             to: email,
@@ -163,117 +163,90 @@ export const newPassword = async (req, res) => {
     }
 }
 
-const verificationCodes = new Map()
-const pendingUsers = new Map()
+// TODO: INSERTAR HTML AL CUERPO DEL CORREO ELECTRÓNICO
 
-// INSERTAR HTML AL CUERPO DEL CORREO ELECTRÓNICO
-export const verificationEmail = async (req, res) => {
+
+export const sendVerifEmail = async (req, res) => {
     const { name, email, password } = req.body
 
     if (!email || !name || !password)
-        return res.status(400).json({ success: false, message: "Datos incompletos" })
+        return res.status(400).json({ success: false, message: "Missing fields" })
 
     try {
         const existe = await userModel.findOne({ email })
         if (existe)
-            return res.status(400).json({ success: false, message: "El usuario ya existe" })
+            return res.status(400).json({ success: false, message: "User already exists" })
 
         if (!validateEmail(email))
-            return res.status(400).json({ success: false, message: "Formato de email inválido" })
+            return res.status(400).json({ success: false, message: "Invalid email format" })
 
         if (!validatePassword(password))
-            return res.status(400).json({ success: false, message: "Contraseña insegura" })
+            return res.status(400).json({ success: false, message: "Invalid password format" })
 
         const code = Math.floor(10000 + Math.random() * 90000).toString()
-        verificationCodes.set(email, code)
-        pendingUsers.set(email, { name, password })
 
-        const verificationEmail = await sendEmail({
+        const temp = await tempCodeModel.findOne({ email })
+
+        if (temp) {
+            temp.code = code
+            temp.name = name
+            temp.password = password
+            await temp.save()
+        } else {
+            const newTemp = new tempCodeModel({ email, code, name, password })
+            await newTemp.save()
+        }
+
+        const sendVerifEmail = await sendEmail({
             to: email,
             subject: "Código de verificación Didacta",
             text: `Tu código de verificación es: ${code}`,
         })
 
-        if (verificationEmail.success)
-            return res.json({ success: true, message: "📩 Código enviado a tu correo" })
-        else
-            return res.status(500).json({ success: false, message: "Error enviando el correo" })
+        if (sendVerifEmail.success)
+            return res.json({ success: true, message: "📩 Verification code sent to your email" })
+
+        return res.status(500).json({ success: false, message: "Error sending email" })
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ success: false, message: "Error en el servidor" })
+        console.error("Error in emailVerification:", error)
+        res.status(500).json({ success: false, message: "Server error" })
     }
 }
 
-export const verifyCode = async (req, res) => {
+export const register = async (req, res) => {
     const { email, code } = req.body
+    console.log(code)
     if (!email || !code)
         return res.status(400).json({ success: false, message: "Datos incompletos" })
 
-    const storedCode = verificationCodes.get(email)
-    if (!storedCode)
-        return res.status(400).json({ success: false, message: "No hay código asociado" })
-
-    if (storedCode !== code)
-        return res.status(400).json({ success: false, message: "Código incorrecto" })
-
-    const pending = pendingUsers.get(email)
-    if (!pending)
-        return res.status(400).json({ success: false, message: "No hay registro pendiente" })
-
     try {
+        const temp = await tempCodeModel.findOne({ email })
+        if (!temp)
+            return res.status(400).json({ success: false, message: "No hay código pendiente para este correo" })
+
+        if (temp.code != code)
+            return res.status(400).json({ success: false, message: "Código incorrecto" })
+
         const newUser = new userModel({
-            name: pending.name,
-            email,
-            password: pending.password,
+            name: temp.name,
+            email: temp.email,
+            password: temp.password,
         })
 
-        const token = generarToken(newUser._id)
         await newUser.save()
+        const token = generarToken(newUser._id)
 
-        verificationCodes.delete(email)
-        pendingUsers.delete(email)
+        await tempCodeModel.deleteOne({ email })
 
-        return res.json({
+        return res.status(201).json({
             success: true,
-            message: "✅ Usuario verificado y registrado",
-            token,
-        })
-    } catch (err) {
-        console.error("Error al registrar usuario:", err)
-        res.status(500).json({ success: false, message: "Error creando usuario" })
-    }
-}
-
-// ESTO ES SIN CODIGO DE VERIFICACIÓN, ES DECIR, FLUJO DIRECTO. REMOVER ? HABLAR CON REDO
-export const registerUser = async (req, res) => {
-    const { name, email, password } = req.body
-    try {
-        const existe = await userModel.findOne({ email })
-        if (existe)
-            return res.status(400).json({ message: "User already exists" })
-
-        if (!validateEmail(email))
-            return res.status(400).json({ message: "Email does not meet the required format." })
-
-        if (!validatePassword(password))
-            return res.status(400).json({ message: "The password does not meet the required security format." })
-
-        const newUser = new userModel({ name, email, password })
-        const token = generarToken(newUser._id)
-
-        if (!token)
-            return res.status(400).json({ message: "No token was generated" })
-
-        await newUser.save()
-
-        res.status(201).json({
             _id: newUser._id,
             name: newUser.name,
             email: newUser.email,
             token,
         })
     } catch (err) {
-        console.error("Error al registrar usuario:", err)
-        res.status(500).json({ message: "Error al registrar usuario" })
+        console.error("Error en register:", err)
+        res.status(500).json({ success: false, message: "Error en el servidor" })
     }
 }
