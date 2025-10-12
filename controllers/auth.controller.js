@@ -167,21 +167,21 @@ export const newPassword = async (req, res) => {
 
 
 export const sendVerifEmail = async (req, res) => {
-    const { name, email, password } = req.body
+    const { name, email } = req.body
 
-    if (!email || !name || !password)
-        return res.status(400).json({ success: false, message: "Missing fields" })
+    if (!email || !name)
+        return res.status(400).json({ success: false, message: "Complete todos los campos." })
 
     try {
         const existe = await userModel.findOne({ email })
         if (existe)
-            return res.status(400).json({ success: false, message: "User already exists" })
+            return res.status(409).json({ success: false, message: "El usuario ya existe." })
 
         if (!validateEmail(email))
-            return res.status(400).json({ success: false, message: "Invalid email format" })
+            return res.status(400).json({ success: false, message: "Formato de correo inválido." })
 
-        if (!validatePassword(password))
-            return res.status(400).json({ success: false, message: "Invalid password format" })
+        // if (!validatePassword(password))
+        //     return res.status(400).json({ success: false, message: "Formato de contraseña inválido." })
 
         const code = Math.floor(10000 + Math.random() * 90000).toString()
 
@@ -190,10 +190,10 @@ export const sendVerifEmail = async (req, res) => {
         if (temp) {
             temp.code = code
             temp.name = name
-            temp.password = password
+            // temp.password = password
             await temp.save()
         } else {
-            const newTemp = new tempCodeModel({ email, code, name, password })
+            const newTemp = new tempCodeModel({ email, code, name }) //, password
             await newTemp.save()
         }
 
