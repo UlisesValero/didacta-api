@@ -1,4 +1,4 @@
-import Logger from "../models/Logger.model.js"
+import { loggerModel } from "../models/Logger.model.js"
 
 /**
  * Middleware global de manejo de errores.
@@ -9,7 +9,7 @@ export const loggerMiddleware = async (err, req, res, next) => {
     try {
         // Solo loggea si no se marcó explícitamente log: false
         if (err.log !== false) {
-            await Logger.create({
+            await loggerModel.create({
                 message: err.message || "Error desconocido",
                 stack: err.stack || null,
                 route: req.originalUrl,
