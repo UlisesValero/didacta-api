@@ -66,6 +66,7 @@ export const loginUser = async (req, res) => {
     console.log(req.body)
     try {
         const usuario = await userModel.findOne({ email })
+        console.log(usuario)
         if (!usuario || !(await usuario.comparePassword(password))) {
             return res.status(401).json({ message: 'Invalid Credentials' })
         }
@@ -167,21 +168,21 @@ export const newPassword = async (req, res) => {
 
 
 export const sendVerifEmail = async (req, res) => {
-    const { name, email } = req.body
+    const { name, email, password } = req.body
 
-    if (!email || !name)
-        return res.status(400).json({ success: false, message: "Complete todos los campos." })
+    if (!email || !name || !password)
+        return res.status(400).json({ success: false, message: "Missing fields" })
 
     try {
         const existe = await userModel.findOne({ email })
         if (existe)
-            return res.status(409).json({ success: false, message: "El usuario ya existe." })
+            return res.status(409).json({ success: false, message: "User already exists" })
 
         if (!validateEmail(email))
-            return res.status(400).json({ success: false, message: "Formato de correo inválido." })
+            return res.status(400).json({ success: false, message: "Invalid email format" })
 
-        // if (!validatePassword(password))
-        //     return res.status(400).json({ success: false, message: "Formato de contraseña inválido." })
+        if (!validatePassword(password))
+            return res.status(400).json({ success: false, message: "Invalid password format" })
 
         const code = Math.floor(10000 + Math.random() * 90000).toString()
 
@@ -190,10 +191,10 @@ export const sendVerifEmail = async (req, res) => {
         if (temp) {
             temp.code = code
             temp.name = name
-            // temp.password = password
+            temp.password = password
             await temp.save()
         } else {
-            const newTemp = new tempCodeModel({ email, code, name }) //, password
+            const newTemp = new tempCodeModel({ email, code, name, password })
             await newTemp.save()
         }
 
@@ -215,7 +216,7 @@ export const sendVerifEmail = async (req, res) => {
 
 export const register = async (req, res) => {
     const { email, code } = req.body
-    console.log(code)
+
     if (!email || !code)
         return res.status(400).json({ success: false, message: "Datos incompletos" })
 

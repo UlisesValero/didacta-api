@@ -20,7 +20,11 @@ userSchema.pre('save', async function (next) {
 })
 
 userSchema.methods.comparePassword = async function (input) {
+    if(this.googleId) return false
+    
     return await bcrypt.compare(input, this.password)
+
 }
+
 
 export const userModel = mongoose.model('usuario', userSchema)
