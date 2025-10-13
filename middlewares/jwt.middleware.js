@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
-import { userModel } from '../models/User.js'
+import { userModel } from '../models/User.model.js'
 
+//TODO: invertir logica. protectRoute está siempre, pero busca primero en col unprotectedRoutes y deja pasar
 export const protectRoute = async (req, res, next) => {
     const auth = req.headers.authorization
     if (!auth || !auth.startsWith('Bearer ')) {

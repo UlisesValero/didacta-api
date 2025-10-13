@@ -1,0 +1,15 @@
+{
+    "accessibility.hideAccessibleView": false,
+    "accessibility.underlineLinks": true,
+    "explorer.sortOrder": "default",
+    "explorer.sortOrderLexicographicOptions": "default",
+    "explorer.copyPathSeparator": "/",
+    "explorer.copyRelativePathSeparator": "/",
+    "explorer.decorations.colors": true,
+    "explorer.decorations.badges": true,
+    "explorer.enableDragAndDrop": true,
+    "explorer.excludeGitIgnore": false,
+    "explorer.expandSingleFolderWorkspaces": true,
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": true
+}

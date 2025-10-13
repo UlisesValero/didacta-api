@@ -2,12 +2,15 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 import jwt from 'jsonwebtoken'
-import { userModel } from '../models/User.js'
-import { tempCodeModel } from '../models/Temp_Code.js'
 import { OAuth2Client } from 'google-auth-library'
-import { validateEmail, validatePassword } from '../utils/validation.js'
-import { sendEmail } from "../utils/resend.js";
+import { userModel } from '../../models/User.model.js'
+import { tempCodeModel } from '../../models/Temp_Code.model.js'
+import { validateEmail, validatePassword } from '../../utils/validation.utils.js'
+import { sendEmail } from "../../utils/resend.utils.js";
 
+
+//TODO: ver lógica code con expiration: si estamos usando el resetTokenExpire en userModel, no haría falta el tempCodeModel. usamos la misma lógica y podemos usar "tempToken", "tempTokenExpire" en userModel, que abarque ambos.
+//TODO: revisar lo que se mueve a capa de servicio
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
@@ -27,7 +30,7 @@ const generarTokenReset = (email) => {
     }
 }
 
-export const loginGoogle = async (req, res) => {
+export const google = async (req, res) => {
     try {
         const { id_token } = req.body
         if (!id_token) return res.status(400).json({ message: 'Id_Token from google missing' })
@@ -61,7 +64,7 @@ export const loginGoogle = async (req, res) => {
     }
 }
 
-export const loginUser = async (req, res) => {
+export const login = async (req, res) => {
     const { email, password } = req.body
     console.log(req.body)
     try {
@@ -99,11 +102,10 @@ export const resetPassword = async (req, res) => {
         if (!user) return res.status(404).json({ message: "Usuario no encontrado" })
 
         const token = generarTokenReset(email)
-        user.resetToken = token
-        user.resetTokenExpire = Date.now() + 15 * 60 * 1000; // 15 min, YO LO BAJARÍA AÚN MÁS
+        user.tempToken = token
+        user.tempTokenExpire = Date.now() + 5 * 60 * 1000; // 5 min
         await user.save()
 
-        //REEMPLAZAR POR DOMINIO DE DIDACTA (CONSULTAR CON REDO)
         const resetLink = process.env.APP_URL + `/new-password/${token}`
 
         const response = await sendEmail({
@@ -115,7 +117,7 @@ export const resetPassword = async (req, res) => {
           <h3>Restablecimiento de contraseña</h3>
           <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
           <a href="${resetLink}" target="_blank">${resetLink}</a>
-          <p>Este enlace expirará en 15 minutos.</p>
+          <p>Este enlace expirará en 5 minutos.</p>
         </div>
       `,
         })
@@ -167,7 +169,7 @@ export const newPassword = async (req, res) => {
 // TODO: INSERTAR HTML AL CUERPO DEL CORREO ELECTRÓNICO
 
 
-export const sendVerifEmail = async (req, res) => {
+export const verificationEmail = async (req, res) => {
     const { name, email, password } = req.body
 
     if (!email || !name || !password)

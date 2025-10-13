@@ -1,25 +1,24 @@
 import express from 'express'
 import {
-    loginUser,
+    login,
     perfilUsuario,
-    loginGoogle,
+    google,
     resetPassword,
     newPassword,
-    sendVerifEmail,
+    verificationEmail,
     register
-} from '../controllers/auth.controller.js'
-import { protectRoute } from '../middlewares/auth.middleware.js'
+} from './auth.controller.js'
+import { protectRoute } from '../../middlewares/jwt.middleware.js'
 
 const router = express.Router()
 
-router.post('/login', loginUser)
-router.post('/google', loginGoogle)
+router.post('/login', login)
+router.post('/google', google)
 router.post('/reset-password', resetPassword)
 router.post('/new-password', newPassword)
-router.post("/verification-email", sendVerifEmail)
+router.post("/verification-email", verificationEmail)
 router.post("/register", register)
 
-//PROTEGER RUTA ¿CUALES SI? ¿CUALES NO?
 router.get('/perfil', protectRoute, perfilUsuario)
 
 export default router
