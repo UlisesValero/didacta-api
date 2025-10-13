@@ -3,22 +3,20 @@ dotenv.config()
 
 import express from 'express'
 import mongoose from 'mongoose'
-import cors from 'cors'
 import authRoutes from './src/auth/auth.routes.js'
+import appConfig from './config/app.config.js'
 
 const app = express()
-app.use(cors())
-app.use(express.json())
-
-app.use('/api/auth', authRoutes)
-
 const PORT = 8080
-mongoose.connect(process.env.CONNECTION_STRING, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
-}).catch(err => console.error('❌ Error connecting to MongoDB:', err))
 
-//test commit permisos
+//INFO: defino las rutas acá para pasarlas a appConfig
+const routes = [{
+    '/api/auth': authRoutes
+}]
+
+//INFO: necesario primero primero para que los middleware que usan la DB funcionen
+mongoose.connect(process.env.CONNECTION_STRING).then(() => {
+    console.log('✅ MongoDB ON');
+    appConfig(app, routes)
+    app.listen(PORT, () => console.log(`✅ Server ON @${PORT}`))
+}).catch(err => console.error('❌ App startup error', err))

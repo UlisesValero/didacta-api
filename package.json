@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "node config/sync-env.js && nodemon ./index.js",
-    "build": "DIDACTA_ENV=production node config/sync-env.js && node ./index.js",
-    "test": "node config/sync-env.js && nodemon ./index.js"
+    "dev": "node config/sync-env.config.js && nodemon ./index.js",
+    "build": "DIDACTA_ENV=production node config/sync-env.config.js && node ./index.js",
+    "test": "node config/sync-env.config.js && nodemon ./index.js"
   },
   "repository": {
     "type": "git",

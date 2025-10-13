@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 
-const tempCodeSchema = new mongoose.Schema({
+export const tempCodeSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     code: { type: String, required: true },
     name: { type: String, required: true },

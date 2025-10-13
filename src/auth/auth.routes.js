@@ -8,7 +8,7 @@ import {
     verificationEmail,
     register
 } from './auth.controller.js'
-import { protectRoute } from '../../middlewares/jwt.middleware.js'
+import { jwtMiddleware } from '../../middlewares/jwt.middleware.js'
 
 const router = express.Router()
 
@@ -19,6 +19,6 @@ router.post('/new-password', newPassword)
 router.post("/verification-email", verificationEmail)
 router.post("/register", register)
 
-router.get('/perfil', protectRoute, perfilUsuario)
+router.get('/perfil', jwtMiddleware, perfilUsuario)
 
 export default router

@@ -21,3 +21,11 @@ export const sanitizeInput = (input) => {
 
     return input.toString().trim().replace(/[<>]/g, "")
 }
+
+export class AppError extends Error {
+    constructor(message, status = 500, log = true) {
+        super(message)
+        this.status = status
+        this.log = log
+    }
+}
