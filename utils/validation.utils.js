@@ -1,10 +1,3 @@
-// import mongoose from "mongoose"
-
-
-
-// TODO: NO ES NECESARIO ¿? SE BUSCA POR TOKEN UNA VEZ INICIADA SESIÓN
-// export const validateObjectId = (id) => mongoose.Types.ObjectId.isValid(id)
-
 export const validateEmail = (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 

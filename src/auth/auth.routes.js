@@ -6,19 +6,19 @@ import {
     resetPassword,
     newPassword,
     verificationEmail,
-    register
+    register,
+    googleHint
 } from './auth.controller.js'
-import { jwtMiddleware } from '../../middlewares/jwt.middleware.js'
-
 const router = express.Router()
 
 router.post('/login', login)
 router.post('/google', google)
+router.post('/google-hint', googleHint)
 router.post('/reset-password', resetPassword)
 router.post('/new-password', newPassword)
 router.post("/verification-email", verificationEmail)
 router.post("/register", register)
 
-router.get('/perfil', jwtMiddleware, perfilUsuario)
+router.get('/perfil', perfilUsuario)
 
 export default router

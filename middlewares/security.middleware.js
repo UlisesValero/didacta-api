@@ -12,4 +12,5 @@ export const securityMiddleware = (req, res, next) => {
     //     methods: ["GET", "POST", "PUT", "DELETE"],
     //     credentials: true
     // }
+    next()
 }

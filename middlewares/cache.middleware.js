@@ -25,5 +25,5 @@ export async function cacheMiddleware(req, res, next) {
     //     return originalSend(body);
     //   };
 
-    //   next();
+      next();
 }

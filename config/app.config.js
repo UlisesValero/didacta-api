@@ -1,11 +1,11 @@
-//INFO: esta función es necesaria porque el orden de los use importa
+//INFO: esta función es necesaria porque el orden de los use es crucial
 import { json } from 'express'
 import cors from 'cors'
 
-import { cacheMiddleware } from '../middlewares/cache.middleware.js'
-import { jwtMiddleware } from '../middlewares/jwt.middleware.js'
-import { loggerMiddleware } from '../middlewares/logger.middleware.js'
 import { securityMiddleware } from '../middlewares/security.middleware.js'
+import { jwtMiddleware } from '../middlewares/jwt.middleware.js'
+import { cacheMiddleware } from '../middlewares/cache.middleware.js'
+import { loggerMiddleware } from '../middlewares/logger.middleware.js'
 
 /**
  * Configuración de la aplicación.

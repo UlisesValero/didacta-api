@@ -64,6 +64,13 @@ export const google = async (req, res) => {
     }
 }
 
+export const googleHint = ("/api/auth/check-user", async (req, res) => {
+  const { email } = req.body
+  if (!email) return res.status(400).json({ message: "No se encontró un email registrado", exists: false })
+  const exists = await userModel.findOne({ email })
+  res.json({ exists: !!exists })
+})
+
 export const login = async (req, res) => {
     const { email, password } = req.body
     console.log(req.body)
@@ -106,6 +113,7 @@ export const resetPassword = async (req, res) => {
         user.tempTokenExpire = Date.now() + 5 * 60 * 1000; // 5 min
         await user.save()
 
+        // TODO: TESTEAR
         const resetLink = process.env.APP_URL + `/new-password/${token}`
 
         const response = await sendEmail({
