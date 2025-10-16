@@ -1,37 +1,15 @@
-import dotenv from 'dotenv'
-dotenv.config()
-
-import jwt from 'jsonwebtoken'
 import { OAuth2Client } from 'google-auth-library'
 import { userModel } from '../../models/User.model.js'
 import { tempCodeModel } from '../../models/Temp_Code.model.js'
 import { validateEmail, validatePassword } from '../../utils/validation.utils.js'
 import { sendEmail } from "../../utils/resend.utils.js";
-
-
+import { AppError, jwtSign } from '../../utils/miscellaneous.utils.js'
 //TODO: ver lógica code con expiration: si estamos usando el resetTokenExpire en userModel, no haría falta el tempCodeModel. usamos la misma lógica y podemos usar "tempToken", "tempTokenExpire" en userModel, que abarque ambos.
 //TODO: revisar lo que se mueve a capa de servicio
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
-
-const generarToken = (id) => {
-    try {
-        return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
-    } catch (error) {
-        return null
-    }
-}
-
-const generarTokenReset = (email) => {
-    try {
-        return jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "15m" })
-    } catch (error) {
-        return null
-    }
-}
-
 export const google = async (req, res) => {
     try {
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
         const { id_token } = req.body
         if (!id_token) return res.status(400).json({ message: 'Id_Token from google missing' })
 
@@ -56,7 +34,7 @@ export const google = async (req, res) => {
             name: usuario.name,
             email: usuario.email,
             foto: usuario.foto,
-            token: generarToken(usuario._id)
+            token: jwtSign(usuario._id)
         })
     } catch (err) {
         console.error('❌ Error Google Login:', err)
@@ -65,31 +43,29 @@ export const google = async (req, res) => {
 }
 
 export const googleHint = ("/api/auth/check-user", async (req, res) => {
-  const { email } = req.body
-  if (!email) return res.status(400).json({ message: "No se encontró un email registrado", exists: false })
-  const exists = await userModel.findOne({ email })
-  res.json({ exists: !!exists })
+    const { email } = req.body
+    if (!email) return res.status(400).json({ message: "No se encontró un email registrado", exists: false })
+    const exists = await userModel.findOne({ email })
+    res.json({ exists: !!exists })
 })
 
 export const login = async (req, res) => {
     const { email, password } = req.body
-    console.log(req.body)
-    try {
-        const usuario = await userModel.findOne({ email })
-        console.log(usuario)
-        if (!usuario || !(await usuario.comparePassword(password))) {
-            return res.status(401).json({ message: 'Invalid Credentials' })
-        }
-
-        res.status(200).json({
-            _id: usuario._id,
-            name: usuario.name,
-            email: usuario.email,
-            token: generarToken(usuario._id)
-        })
-    } catch (err) {
-        res.status(500).json({ message: 'Error al iniciar sesión' })
+    // try {
+    const usuario = await userModel.findOne({ email })
+    if (!usuario || !(await usuario.comparePassword(password))) {
+        throw new AppError('Email o contraseña incorrectos', 401)
     }
+
+    res.status(200).json({
+        _id: usuario._id,
+        name: usuario.name,
+        email: usuario.email,
+        token: jwtSign(usuario._id, '30d')
+    })
+    // } catch (err) {
+    //     throw err
+    // }
 }
 
 export const perfilUsuario = async (req, res) => {
@@ -108,7 +84,7 @@ export const resetPassword = async (req, res) => {
         const user = await userModel.findOne({ email })
         if (!user) return res.status(404).json({ message: "Usuario no encontrado" })
 
-        const token = generarTokenReset(email)
+        const token = jwtSign(email, '15m')
         user.tempToken = token
         user.tempTokenExpire = Date.now() + 5 * 60 * 1000; // 5 min
         await user.save()
@@ -150,7 +126,7 @@ export const newPassword = async (req, res) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        const decoded = jwtVerify(token)
 
         const user = await userModel.findOne({
             email: decoded.email,
@@ -245,7 +221,7 @@ export const register = async (req, res) => {
         })
 
         await newUser.save()
-        const token = generarToken(newUser._id)
+        const token = jwtSign(newUser._id, '30d')
 
         await tempCodeModel.deleteOne({ email })
 

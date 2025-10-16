@@ -11,7 +11,7 @@ const PORT = 8080
 
 //INFO: defino las rutas acá para pasarlas a appConfig
 const routes = [{
-    '/api/auth': authRoutes
+    '/auth': authRoutes
 }]
 
 //INFO: necesario primero primero para que los middleware que usan la DB funcionen

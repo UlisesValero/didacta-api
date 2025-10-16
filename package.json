@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "node config/sync-env.config.js && nodemon ./index.js",
-    "build": "DIDACTA_ENV=production node config/sync-env.config.js && node ./index.js",
-    "test": "node config/sync-env.config.js && nodemon ./index.js"
+    "dev": "node config/sync-env.config.js && nodemon --require dotenv/config ./index.js",
+    "build": "DIDACTA_ENV=production node config/sync-env.config.js && node --require dotenv/config ./index.js",
+    "test": "node config/sync-env.config.js && nodemon --require dotenv/config ./index.js"
   },
   "repository": {
     "type": "git",
@@ -27,11 +27,15 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.1.0",
     "google-auth-library": "^10.3.0",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
     "mongoose": "^8.18.3",
     "nodemon": "^3.1.10",
-    "resend": "^6.1.2"
+    "resend": "^6.1.2",
+    "xss-clean": "^0.1.4"
   }
 }
