@@ -12,11 +12,11 @@ export const requestCacheSchema = new mongoose.Schema(
             headers: { type: Object, default: {} },
             body: { type: mongoose.Schema.Types.Mixed }, // can store string or object
         },
-        createdAt: { type: Date, default: Date.now },
+        createdAt: { type: Date, default: Date.now, expires: 60 * 10 },
     },
     { versionKey: false }
 );
 // INFO TTL index: elimina automáticamente después de 10 minutos
-requestCacheSchema.index({ createdAt: 1 }, { expireAfterSeconds: 600 })
+// requestCacheSchema.index({ createdAt: 1 }, { expireAfterSeconds: 600 })
 
 export const requestCacheModel = mongoose.model("RequestCache", requestCacheSchema, "request_cache")

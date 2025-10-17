@@ -35,7 +35,7 @@ userSchema.methods.comparePassword = async function (input) {
     return await bcrypt.compare(input, this.password)
 }
 
-userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
+// userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
 //nombre del modelo, esquema, nombre de la colección en la DB
 export const userModel = mongoose.model('user', userSchema, 'user') 
