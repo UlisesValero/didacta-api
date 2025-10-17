@@ -1,11 +1,8 @@
 import { OAuth2Client } from 'google-auth-library'
 import { userModel } from '../../models/User.model.js'
-import { tempCodeModel } from '../../models/Temp_Code.model.js'
 import { validateEmail, validatePassword } from '../../utils/validation.utils.js'
 import { sendEmail } from "../../utils/resend.utils.js";
 import { AppError, HttpStatus, jwtSign } from '../../utils/miscellaneous.utils.js'
-//TODO: ver lógica code con expiration: si estamos usando el resetTokenExpire en userModel, no haría falta el tempCodeModel. usamos la misma lógica y podemos usar "tempToken", "tempTokenExpire" en userModel, que abarque ambos.
-//TODO: revisar lo que se mueve a capa de servicio
 
 export const google = async (req, res) => {
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -76,7 +73,6 @@ export const resetPassword = async (req, res) => {
 
     const token = jwtSign(email, '15m')
     user.tempToken = token
-    user.tempTokenExpire = Date.now() + 5 * 60 * 1000; // 5 min
     await user.save()
 
     // TODO: TESTEAR
@@ -91,7 +87,7 @@ export const resetPassword = async (req, res) => {
           <h3>Restablecimiento de contraseña</h3>
           <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
           <a href="${resetLink}" target="_blank">${resetLink}</a>
-          <p>Este enlace expirará en 5 minutos.</p>
+          <p>Este enlace expirará en 15 minutos.</p>
         </div>
       `,
     })
