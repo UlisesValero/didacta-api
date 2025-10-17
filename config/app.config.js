@@ -1,5 +1,5 @@
 //INFO: este archivo, `app.config.js` es necesario porque el orden de los use es crucial
-import { json } from 'express'
+import { json, urlencoded } from 'express'
 import cors from 'cors'
 
 import { securityMiddleware } from '../middlewares/security.middleware.js'
@@ -14,8 +14,8 @@ import { loggerMiddleware } from '../middlewares/logger.middleware.js'
  */
 export default function appConfig(app, routes) {
     app.use(cors())
-    app.use(json())
-    // app.use(urlencoded({ extended: true }));
+    app.use(json({ limit: '50mb' }))
+    app.use(urlencoded({ extended: true, limit: '50mb' }));
 
     securityMiddleware(app) // Middleware de seguridad - primero siempre
     app.use(jwtMiddleware) // Middleware de JWT, capa de autenticación

@@ -18,5 +18,5 @@ export const securityMiddleware = (app) => {
     });
     app.use(limiter);
     // app.use(mongoSanitize()); //TODO: ta bug y deprecado http://stackoverflow.com/questions/79787302/cannot-set-property-query-of-incomingmessage-which-has-only-a-getter-when-u
-    // app.use(xssClean());
+    // app.use(xssClean()); //TODO: tira bug horrible :(
 }

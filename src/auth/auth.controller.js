@@ -3,59 +3,55 @@ import { userModel } from '../../models/User.model.js'
 import { tempCodeModel } from '../../models/Temp_Code.model.js'
 import { validateEmail, validatePassword } from '../../utils/validation.utils.js'
 import { sendEmail } from "../../utils/resend.utils.js";
-import { AppError, jwtSign } from '../../utils/miscellaneous.utils.js'
+import { AppError, HttpStatus, jwtSign } from '../../utils/miscellaneous.utils.js'
 //TODO: ver lógica code con expiration: si estamos usando el resetTokenExpire en userModel, no haría falta el tempCodeModel. usamos la misma lógica y podemos usar "tempToken", "tempTokenExpire" en userModel, que abarque ambos.
 //TODO: revisar lo que se mueve a capa de servicio
 
 export const google = async (req, res) => {
-    try {
-        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
-        const { id_token } = req.body
-        if (!id_token) return res.status(400).json({ message: 'Id_Token from google missing' })
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+    const { id_token } = req.body
 
-        const ticket = await client.verifyIdToken({
-            idToken: id_token,
-            audience: process.env.GOOGLE_CLIENT_ID
+    if (!id_token) throw new AppError('GOOGLE_CLIENT_ID no encontrado en entorno.', HttpStatus.NOT_IMPLEMENTED)
+
+    const ticket = await client.verifyIdToken({
+        idToken: id_token,
+        audience: process.env.GOOGLE_CLIENT_ID
+    })
+    const payload = ticket.getPayload()
+
+    let usuario = await userModel.findOne({ email: payload.email })
+    if (!usuario) {
+        usuario = await userModel.create({
+            googleId: payload.sub,
+            name: payload.name,
+            email: payload.email,
+            foto: payload.picture,
+            pending: false
         })
-        const payload = ticket.getPayload()
-
-        let usuario = await userModel.findOne({ email: payload.email })
-        if (!usuario) {
-            usuario = await userModel.create({
-                googleId: payload.sub,
-                name: payload.name,
-                email: payload.email,
-                foto: payload.picture
-            })
-        }
-
-        res.json({
-            _id: usuario._id,
-            name: usuario.name,
-            email: usuario.email,
-            foto: usuario.foto,
-            token: jwtSign(usuario._id)
-        })
-    } catch (err) {
-        console.error('❌ Error Google Login:', err)
-        res.status(401).json({ message: 'Token de Google inválido' })
     }
+
+    res.json({
+        _id: usuario._id,
+        name: usuario.name,
+        email: usuario.email,
+        foto: usuario.foto,
+        token: jwtSign(usuario._id)
+    })
 }
 
-export const googleHint = ("/api/auth/check-user", async (req, res) => {
+export const googleHint = async (req, res) => {
     const { email } = req.body
-    if (!email) return res.status(400).json({ message: "No se encontró un email registrado", exists: false })
     const exists = await userModel.findOne({ email })
+    if (!exists) throw new AppError('No se encontró un email registrado', HttpStatus.BAD_REQUEST, { exists: false })
     res.json({ exists: !!exists })
-})
+}
 
 export const login = async (req, res) => {
     const { email, password } = req.body
-    // try {
+
     const usuario = await userModel.findOne({ email })
-    if (!usuario || !(await usuario.comparePassword(password))) {
-        throw new AppError('Email o contraseña incorrectos', 401)
-    }
+    if (!usuario || !(await usuario.comparePassword(password)))
+        throw new AppError('Email o contraseña incorrectos', HttpStatus.UNAUTHORIZED, { magic: true })
 
     res.status(200).json({
         _id: usuario._id,
@@ -63,9 +59,6 @@ export const login = async (req, res) => {
         email: usuario.email,
         token: jwtSign(usuario._id, '30d')
     })
-    // } catch (err) {
-    //     throw err
-    // }
 }
 
 export const perfilUsuario = async (req, res) => {
