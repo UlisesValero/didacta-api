@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid"
 import jwt from 'jsonwebtoken'
+import { createHash } from "crypto"
 
 //#region high-level helpers && class/hardcode utils
 export class AppError extends Error {
@@ -112,5 +113,7 @@ export const jwtVerify = (token) => {
         return null
     }
 }
+
+export const sha512 = (buf) => createHash("sha512").update(buf).digest("hex");
 
 //#endregion

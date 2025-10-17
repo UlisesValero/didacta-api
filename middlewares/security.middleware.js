@@ -1,5 +1,8 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+
+//TODO: tan bug y deprecados http://stackoverflow.com/questions/79787302/cannot-set-property-query-of-incomingmessage-which-has-only-a-getter-when-u
+//sería muy interesante forzar cualquiera de estos errores para ver que pasa
 import mongoSanitize from 'express-mongo-sanitize';
 import xssClean from 'xss-clean';
 
@@ -17,6 +20,4 @@ export const securityMiddleware = (app) => {
         legacyHeaders: false
     });
     app.use(limiter);
-    // app.use(mongoSanitize()); //TODO: ta bug y deprecado http://stackoverflow.com/questions/79787302/cannot-set-property-query-of-incomingmessage-which-has-only-a-getter-when-u
-    // app.use(xssClean()); //TODO: tira bug horrible :(
 }

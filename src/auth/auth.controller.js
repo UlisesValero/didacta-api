@@ -51,7 +51,7 @@ export const login = async (req, res) => {
 
     const usuario = await userModel.findOne({ email })
     if (!usuario || !(await usuario.comparePassword(password)))
-        throw new AppError('Email o contraseña incorrectos', HttpStatus.UNAUTHORIZED, { magic: true })
+        throw new AppError('Email o contraseña incorrectos', HttpStatus.UNAUTHORIZED)
 
     res.status(200).json({
         _id: usuario._id,
@@ -62,34 +62,31 @@ export const login = async (req, res) => {
 }
 
 export const perfilUsuario = async (req, res) => {
-    try {
-        res.json(req.usuario)
-    } catch (err) {
-        res.status(500).json({ message: 'Error al obtener perfil' })
-    }
+    if (!req.usuario) throw new AppError("Usuario no encontrado", 404);
+
+    res.json(req.usuario);
 }
 
 export const resetPassword = async (req, res) => {
     const { email } = req.body
-    if (!email) return res.status(400).json({ message: "El correo es requerido" })
+    if (!email) throw new AppError("El correo es requerido", HttpStatus.BAD_REQUEST)
 
-    try {
-        const user = await userModel.findOne({ email })
-        if (!user) return res.status(404).json({ message: "Usuario no encontrado" })
+    const user = await userModel.findOne({ email })
+    if (!user) throw new AppError("Usuario no encontrado", HttpStatus.NOT_FOUND)
 
-        const token = jwtSign(email, '15m')
-        user.tempToken = token
-        user.tempTokenExpire = Date.now() + 5 * 60 * 1000; // 5 min
-        await user.save()
+    const token = jwtSign(email, '15m')
+    user.tempToken = token
+    user.tempTokenExpire = Date.now() + 5 * 60 * 1000; // 5 min
+    await user.save()
 
-        // TODO: TESTEAR
-        const resetLink = process.env.APP_URL + `/new-password/${token}`
+    // TODO: TESTEAR
+    const resetLink = process.env.APP_URL + `/new-password/${token}`
 
-        const response = await sendEmail({
-            to: email,
-            subject: "Restablece tu contraseña - Didacta",
-            text: `Haz click en el siguiente enlace para restablecer tu contraseña: ${resetLink}`,
-            html: `
+    const response = await sendEmail({
+        to: email,
+        subject: "Restablece tu contraseña - Didacta",
+        text: `Haz click en el siguiente enlace para restablecer tu contraseña: ${resetLink}`,
+        html: `
         <div style="font-family:Arial,sans-serif">
           <h3>Restablecimiento de contraseña</h3>
           <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
@@ -97,136 +94,118 @@ export const resetPassword = async (req, res) => {
           <p>Este enlace expirará en 5 minutos.</p>
         </div>
       `,
-        })
+    })
 
-        if (response.success) {
-            return res.json({ message: "📩 Correo de restablecimiento enviado" })
-        } else {
-            return res.status(500).json({ message: "Error enviando el correo", error: response.error })
-        }
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: "Error en el servidor", error })
+    //INFO guard clause siempre. se invierten los bloques if-else para evitar anidamientos
+    //antes:
+    // if (response.success) {
+    //     return res.json({ message: "📩 Correo de restablecimiento enviado" })
+    // } else {
+    //     return res.status(500).json({ message: "Error enviando el correo", error: response.error })
+    // }
+
+    //ahora:
+    if (!response.success) {
+        throw new AppError("Error enviando el correo", HttpStatus.INTERNAL_SERVER_ERROR, { error: response.error })
     }
+    return res.json({ message: "📩 Correo de restablecimiento enviado" })
 }
 
 export const newPassword = async (req, res) => {
     const { token, password } = req.body
-    console.log("RESET", req.body)
 
     if (!token || !password) {
-        return res.status(400).json({ message: "Token y nueva contraseña son requeridos" })
+        throw new AppError("Token y nueva contraseña son requeridos", HttpStatus.BAD_REQUEST)
     }
 
-    try {
-        const decoded = jwtVerify(token)
+    const decoded = jwtVerify(token)
 
-        const user = await userModel.findOne({
-            email: decoded.email,
-            resetToken: token,
-            resetTokenExpire: { $gt: Date.now() },
-        })
+    const user = await userModel.findOne({
+        email: decoded.email,
+        resetToken: token,
+        resetTokenExpire: { $gt: Date.now() },
+    })
 
-        if (!user) {
-            return res.status(400).json({ message: "Token inválido o expirado ?" })
-        }
-
-        user.password = String(password)
-        user.resetToken = undefined
-        user.resetTokenExpire = undefined
-        await user.save()
-
-        res.json({ message: "✅ Contraseña actualizada correctamente." })
-    } catch (error) {
-        console.error(error)
-        res.status(400).json({ message: "Token inválido o expirado" })
+    if (!user) {
+        throw new AppError("Token inválido o expirado", HttpStatus.BAD_REQUEST)
     }
+
+    user.password = String(password)
+    user.tempToken = undefined
+    user.tempTokenExpire = undefined
+    await user.save()
+
+    res.json({ message: "✅ Contraseña actualizada correctamente." })
 }
 
 // TODO: INSERTAR HTML AL CUERPO DEL CORREO ELECTRÓNICO
 
 
 export const verificationEmail = async (req, res) => {
-    const { name, email, password } = req.body
+    const { name, email, password } = req.body;
 
     if (!email || !name || !password)
-        return res.status(400).json({ success: false, message: "Missing fields" })
+        throw new AppError("Faltan campos obligatorios", HttpStatus.BAD_REQUEST);
 
-    try {
-        const existe = await userModel.findOne({ email })
-        if (existe)
-            return res.status(409).json({ success: false, message: "User already exists" })
+    const usuario = await userModel.findOne({ email });
+    if (usuario)
+        throw new AppError("El usuario ya existe", HttpStatus.CONFLICT);
 
-        if (!validateEmail(email))
-            return res.status(400).json({ success: false, message: "Invalid email format" })
+    if (!validateEmail(email))
+        throw new AppError("Formato de correo inválido", HttpStatus.BAD_REQUEST);
 
-        if (!validatePassword(password))
-            return res.status(400).json({ success: false, message: "Invalid password format" })
+    if (!validatePassword(password))
+        throw new AppError("Formato de contraseña inválido", HttpStatus.BAD_REQUEST);
 
-        const code = Math.floor(10000 + Math.random() * 90000).toString()
+    const code = Math.floor(10000 + Math.random() * 90000).toString();
 
-        const temp = await tempCodeModel.findOne({ email })
+    //TODO: testear
+    await userModel.create({ email, pending: true, name, password, tempToken: code, tempTokenExpire: Date.now() + 15 * 60 * 1000 });
 
-        if (temp) {
-            temp.code = code
-            temp.name = name
-            temp.password = password
-            await temp.save()
-        } else {
-            const newTemp = new tempCodeModel({ email, code, name, password })
-            await newTemp.save()
-        }
+    // if (pending) {
+    //     pending.tempToken = code;
+    //     pending.name = name;
+    //     pending.password = password;
+    //     await pending.save();
+    // } else {
+    //     await tempCodeModel.create({ email, code, name, password });
+    // }
 
-        const sendVerifEmail = await sendEmail({
-            to: email,
-            subject: "Código de verificación Didacta",
-            text: `Tu código de verificación es: ${code}`,
-        })
+    const sendVerifEmail = await sendEmail({
+        to: email,
+        subject: "Código de verificación Didacta",
+        text: `Tu código de verificación es: ${code}`,
+    });
 
-        if (sendVerifEmail.success)
-            return res.json({ success: true, message: "📩 Verification code sent to your email" })
+    if (!sendVerifEmail.success)
+        throw new AppError("Error al enviar el correo", HttpStatus.INTERNAL_SERVER_ERROR);
 
-        return res.status(500).json({ success: false, message: "Error sending email" })
-    } catch (error) {
-        console.error("Error in emailVerification:", error)
-        res.status(500).json({ success: false, message: "Server error" })
-    }
+    res.json({ success: true, message: "📩 Código de verificación enviado a tu correo" });
 }
 
 export const register = async (req, res) => {
-    const { email, code } = req.body
+
+    const { email, code } = req.body;
 
     if (!email || !code)
-        return res.status(400).json({ success: false, message: "Datos incompletos" })
+        throw new AppError("Datos incompletos", HttpStatus.BAD_REQUEST);
 
-    try {
-        const temp = await tempCodeModel.findOne({ email })
-        if (!temp)
-            return res.status(400).json({ success: false, message: "No hay código pendiente para este correo" })
+    const usuario = await userModel.findOne({ email, code: code, pending: true });
 
-        if (temp.code != code)
-            return res.status(400).json({ success: false, message: "Código incorrecto" })
+    if (!usuario)
+        throw new AppError("No hay código pendiente para este correo", HttpStatus.BAD_REQUEST);
 
-        const newUser = new userModel({
-            name: temp.name,
-            email: temp.email,
-            password: temp.password,
-        })
+    if (usuario.code !== code)
+        throw new AppError("Código incorrecto", HttpStatus.BAD_REQUEST);
 
-        await newUser.save()
-        const token = jwtSign(newUser._id, '30d')
+    usuario.pending = false;
+    usuario.token = jwtSign(newUser._id, "30d");
 
-        await tempCodeModel.deleteOne({ email })
-
-        return res.status(201).json({
-            success: true,
-            _id: newUser._id,
-            name: newUser.name,
-            email: newUser.email,
-            token,
-        })
-    } catch (err) {
-        console.error("Error en register:", err)
-        res.status(500).json({ success: false, message: "Error en el servidor" })
-    }
-}
+    res.status(HttpStatus.CREATED).json({
+        success: true,
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        token,
+    });
+};
