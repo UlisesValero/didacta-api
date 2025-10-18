@@ -4,7 +4,6 @@ import { newId } from "../utils/miscellaneous.utils.js"
 /**
  * Middleware global de manejo de errores.
  * Registra en la colección `log` cualquier error no marcado con `log: false`.
- * TODO: testear
  */
 export const loggerMiddleware = async (err, req, res, next) => {
     try {

@@ -1,17 +1,19 @@
-//INFO: este archivo, `app.config.js` es necesario porque el orden de los use es crucial
+//INFO:
+//este archivo, `app.config.js` es necesario porque el orden de los use es crucial
+//este archivo, `app.config.js` es necesario porque el orden de los use es crucial
+//este archivo, `app.config.js` es necesario porque el orden de los use es crucial
 import { json, urlencoded } from 'express'
 import cors from 'cors'
 
 import { cacheMiddleware } from '../middlewares/cache.middleware.js'
 import { securityMiddleware } from '../middlewares/security.middleware.js'
 import { jwtMiddleware } from '../middlewares/jwt.middleware.js'
-// import { cacheMiddleware } from '../middlewares/cache.middleware.js'
 import { loggerMiddleware } from '../middlewares/logger.middleware.js'
 
 /**
  * Configuración de la aplicación.
- * @param {*} app 
- * @param {*} routes 
+ * @param {Express} app Instancia de aplicación Express
+ * @param {Array<{ path: string, handler: (req: any, res: any) => Promise<void> }>} routes Array de rutas a registrar con formato `[{ path: handler }]`
  */
 export default function appConfig(app, routes) {
     app.use(cors())

@@ -2,7 +2,7 @@ import { OAuth2Client } from 'google-auth-library'
 import { userModel } from '../../models/User.model.js'
 import { validateEmail, validatePassword } from '../../utils/validation.utils.js'
 import { sendEmail } from "../../utils/resend.utils.js";
-import { AppError, HttpStatus, jwtSign } from '../../utils/miscellaneous.utils.js'
+import { AppError, HttpStatus, jwtSign, jwtVerify } from '../../utils/miscellaneous.utils.js'
 
 export const google = async (req, res) => {
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -50,11 +50,12 @@ export const login = async (req, res) => {
     if (!usuario || !(await usuario.comparePassword(password)))
         throw new AppError('Email o contraseña incorrectos', HttpStatus.UNAUTHORIZED)
 
+    let token = jwtSign(usuario._id, '30d')
     res.status(200).json({
         _id: usuario._id,
         name: usuario.name,
         email: usuario.email,
-        token: jwtSign(usuario._id, '30d')
+        token
     })
 }
 
@@ -71,58 +72,52 @@ export const resetPassword = async (req, res) => {
     const user = await userModel.findOne({ email })
     if (!user) throw new AppError("Usuario no encontrado", HttpStatus.NOT_FOUND)
 
-    const token = jwtSign(email, '15m')
+    const token = jwtSign(user, "15m")
     user.tempToken = token
+    user.tempTokenExpire = new Date(Date.now() + 1 * 60 * 1000) //INFO: m, s, ms (mide ticks en ms)
     await user.save()
 
-    // TODO: TESTEAR
-    const resetLink = process.env.APP_URL + `/new-password/${token}`
+    const resetLink = `${process.env.APP_URL}/new-password/${token}`
 
     const response = await sendEmail({
         to: email,
         subject: "Restablece tu contraseña - Didacta",
-        text: `Haz click en el siguiente enlace para restablecer tu contraseña: ${resetLink}`,
         html: `
-        <div style="font-family:Arial,sans-serif">
-          <h3>Restablecimiento de contraseña</h3>
-          <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
-          <a href="${resetLink}" target="_blank">${resetLink}</a>
-          <p>Este enlace expirará en 15 minutos.</p>
-        </div>
-      `,
+      <div style="font-family:Arial,sans-serif">
+        <h3>Restablecimiento de contraseña</h3>
+        <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
+        <a href="${resetLink}" target="_blank">${resetLink}</a>
+        <p>Este enlace expirará en 1 minuto.</p>
+      </div>
+    `,
     })
 
-    //INFO guard clause siempre. se invierten los bloques if-else para evitar anidamientos
-    //antes:
-    // if (response.success) {
-    //     return res.json({ message: "📩 Correo de restablecimiento enviado" })
-    // } else {
-    //     return res.status(500).json({ message: "Error enviando el correo", error: response.error })
-    // }
-
-    //ahora:
     if (!response.success) {
         throw new AppError("Error enviando el correo", HttpStatus.INTERNAL_SERVER_ERROR, { error: response.error })
     }
+
     return res.json({ message: "📩 Correo de restablecimiento enviado" })
 }
 
 export const newPassword = async (req, res) => {
     const { token, password } = req.body
-
     if (!token || !password) {
         throw new AppError("Token y nueva contraseña son requeridos", HttpStatus.BAD_REQUEST)
     }
 
-    const decoded = jwtVerify(token)
+    const decodedUser = jwtVerify(token)
+    const user = await userModel.findOne({ email: decodedUser.key.email })
 
-    const user = await userModel.findOne({
-        email: decoded.email,
-        resetToken: token,
-        resetTokenExpire: { $gt: Date.now() },
-    })
+    if (user?.tempTokenExpire && user.tempTokenExpire < new Date()) {
+        user.tempToken = undefined
+        user.tempTokenExpire = undefined
+        await user.save()
+        throw new AppError("Token vencido. Intenta reestablecer la contraseña nuevamente.", HttpStatus.BAD_REQUEST)
+    }
 
-    if (!user) {
+    console.log(user)
+
+    if (!user || user.tempToken !== token) {
         throw new AppError("Token inválido o expirado", HttpStatus.BAD_REQUEST)
     }
 
@@ -155,17 +150,7 @@ export const verificationEmail = async (req, res) => {
 
     const code = Math.floor(10000 + Math.random() * 90000).toString();
 
-    //TODO: testear
-    await userModel.create({ email, pending: true, name, password, tempToken: code, tempTokenExpire: Date.now() + 15 * 60 * 1000 });
-
-    // if (pending) {
-    //     pending.tempToken = code;
-    //     pending.name = name;
-    //     pending.password = password;
-    //     await pending.save();
-    // } else {
-    //     await tempCodeModel.create({ email, code, name, password });
-    // }
+    await userModel.create({ email, pending: true, name, password, tempToken: code, tempTokenExpire: Date.now() + 1 * 60 * 1000 });
 
     const sendVerifEmail = await sendEmail({
         to: email,
@@ -181,27 +166,32 @@ export const verificationEmail = async (req, res) => {
 
 export const register = async (req, res) => {
 
-    const { email, code } = req.body;
-
+    const { email, code } = req.body
     if (!email || !code)
         throw new AppError("Datos incompletos", HttpStatus.BAD_REQUEST);
 
-    const usuario = await userModel.findOne({ email, code: code, pending: true });
-
+    const usuario = await userModel.findOne({ email: email, tempToken: code, pending: true });
     if (!usuario)
         throw new AppError("No hay código pendiente para este correo", HttpStatus.BAD_REQUEST);
 
-    if (usuario.code !== code)
+    if (usuario.tempToken !== code)
         throw new AppError("Código incorrecto", HttpStatus.BAD_REQUEST);
 
     usuario.pending = false;
-    usuario.token = jwtSign(newUser._id, "30d");
+    usuario.tempToken = undefined;
+    usuario.tempTokenExpire = undefined;
+    let token = jwtSign(usuario._id, "30d");
+    usuario.save()
 
     res.status(HttpStatus.CREATED).json({
         success: true,
-        _id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        token,
+        _id: usuario._id,
+        name: usuario.name,
+        email: usuario.email,
+        token
     });
 };
+
+export const cualquiera = async () => {
+    console.log("HOLA")
+}

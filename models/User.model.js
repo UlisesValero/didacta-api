@@ -1,41 +1,42 @@
-import mongoose from 'mongoose'
-import bcrypt from 'bcryptjs'
+import mongoose from "mongoose"
+import bcrypt from "bcryptjs"
 
-export const userSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String },
-    googleId: { type: String },
-    foto: { type: String },
-    pending: { type: Boolean, default: false },
-    expireAt: { type: Date, default: null },
-    tempToken: { type: String, expires: 900 },
-    tempTokenExpire: { type: Date, default: Date.now, expires: 900 } // 15 minutos,
-}, { timestamps: true })
+export const userSchema = new mongoose.Schema(
+    {
+        name: { type: String, required: true },
+        email: { type: String, required: true, unique: true },
+        password: { type: String },
+        googleId: { type: String },
+        foto: { type: String },
+        pending: { type: Boolean, default: false },
+        pendingFrom: { type: Date, default: null },
+        tempToken: { type: String },
+        tempTokenExpire: {
+            type: Date,
+            default: () => new Date(Date.now() + 15 * 60 * 1000), // 15 min (info: La razón del default asi es porque se evalúa una sola vez al cargar el modelo, no en cada documento nuevo.)
+        },
+    },
+    { timestamps: true }
+)
 
-//cuando reestableces la contraseña borrar el token, y si guardas un usuario nuevo (pending = true) 
-//el registro expira si no se verificó
-userSchema.pre('save', async function (next) {
-    if (this.pending) this.expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    else this.expireAt = null;
+userSchema.index({ pendingFrom: 1 }, { expireAfterSeconds: 900 })
 
-    if (!this.isModified('password') || !this.password) {
-        this.tempToken = undefined
-        this.tempTokenExpire = undefined
-        return next()
+userSchema.pre("save", async function (next) {
+    if (this.tempToken && !this.tempTokenExpire) this.tempTokenExpire = new Date(Date.now() + 15 * 60 * 1000)
+    if (!this.tempToken && this.tempTokenExpire) this.tempTokenExpire = null
+    this.pendingFrom = this.pending ? new Date() : null
+
+    if (this.isModified("password") && this.password) {
+        const salt = await bcrypt.genSalt(10)
+        this.password = await bcrypt.hash(this.password, salt)
     }
-    const salt = await bcrypt.genSalt(10)
-    this.password = await bcrypt.hash(this.password, salt)
+
     next()
 })
 
 userSchema.methods.comparePassword = async function (input) {
     if (this.googleId) return false
-
     return await bcrypt.compare(input, this.password)
 }
 
-// userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
-
-//nombre del modelo, esquema, nombre de la colección en la DB
-export const userModel = mongoose.model('user', userSchema, 'user') 
+export const userModel = mongoose.model("user", userSchema, "user")

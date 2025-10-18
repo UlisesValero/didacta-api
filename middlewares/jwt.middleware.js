@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { userModel } from '../models/User.model.js'
 import { unprotectedRouteModel } from '../models/Unprotected_Route.model.js'
+import { jwtVerify } from '../utils/miscellaneous.utils.js'
 
 /**
  * Middleware global de firewall jwt.
@@ -22,9 +23,8 @@ export const jwtMiddleware = async (req, res, next) => {
 
     try {
         const token = auth.split(' ')[1]
-        const decodificado = jwt.verify(token, process.env.JWT_SECRET)
-
-        const usuario = await userModel.findById(decodificado.id).select('-contraseña')
+        const decodificado = jwtVerify(token, process.env.JWT_SECRET)
+        const usuario = await userModel.findById(decodificado.key).select('-contraseña')
         if (!usuario) {
             return res.status(401).json({ message: 'Usuario no encontrado' })
         }
