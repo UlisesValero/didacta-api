@@ -19,8 +19,8 @@ export default function appConfig(app, routes) {
     app.use(cors())
     app.use(json({ limit: '50mb' }))
     app.use(urlencoded({ extended: true, limit: '50mb' }));
-    app.use(cacheMiddleware) // Middleware de cache 
     securityMiddleware(app) // Middleware de seguridad - primero siempre
+    app.use(cacheMiddleware) // Middleware de cache 
 
     app.use(jwtMiddleware) // Middleware de JWT, capa de autenticación
 

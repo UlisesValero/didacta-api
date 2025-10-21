@@ -37,18 +37,33 @@ export const google = async (req, res) => {
 }
 
 export const googleHint = async (req, res) => {
-    const { email } = req.body
-    const exists = await userModel.findOne({ email })
-    if (!exists) throw new AppError('No se encontró un email registrado', HttpStatus.BAD_REQUEST, { exists: false })
-    res.json({ exists: !!exists })
+    try {
+        const { email } = req.query
+        if (!email) return res.status(400).json({ success: false, message: "Email requerido" })
+
+        const usuario = await userModel.findOne({ email, googleId: { $exists: true, $ne: null } })
+        const showHint = Boolean(usuario)
+
+        res.json({ success: true, showHint })
+    } catch (error) {
+        console.error("Error en googleHint:", error)
+        res.status(500).json({ success: false, message: "Error en servidor" })
+    }
 }
 
 export const login = async (req, res) => {
     const { email, password } = req.body
 
+    if (!email || !password)
+        throw new AppError("Datos incompletos", HttpStatus.BAD_REQUEST)
+
     const usuario = await userModel.findOne({ email })
-    if (!usuario || !(await usuario.comparePassword(password)))
-        throw new AppError('Email o contraseña incorrectos', HttpStatus.UNAUTHORIZED)
+    if (!usuario)
+        throw new AppError("Email o contraseña incorrectos", HttpStatus.UNAUTHORIZED)
+
+    const validPassword = await usuario.comparePassword(password)
+    if (!validPassword)
+        throw new AppError("Email o contraseña incorrectos", HttpStatus.UNAUTHORIZED)
 
     let token = jwtSign(usuario._id, '30d')
     res.status(200).json({
@@ -72,7 +87,7 @@ export const resetPassword = async (req, res) => {
     const user = await userModel.findOne({ email })
     if (!user) throw new AppError("Usuario no encontrado", HttpStatus.NOT_FOUND)
 
-    const token = jwtSign(user, "15m")
+    const token = jwtSign(user._id, "15m")
     user.tempToken = token
     user.tempTokenExpire = new Date(Date.now() + 1 * 60 * 1000) //INFO: m, s, ms (mide ticks en ms)
     await user.save()
@@ -101,6 +116,7 @@ export const resetPassword = async (req, res) => {
 
 export const newPassword = async (req, res) => {
     const { token, password } = req.body
+
     if (!token || !password) {
         throw new AppError("Token y nueva contraseña son requeridos", HttpStatus.BAD_REQUEST)
     }
@@ -115,11 +131,12 @@ export const newPassword = async (req, res) => {
         throw new AppError("Token vencido. Intenta reestablecer la contraseña nuevamente.", HttpStatus.BAD_REQUEST)
     }
 
-    console.log(user)
-
     if (!user || user.tempToken !== token) {
         throw new AppError("Token inválido o expirado", HttpStatus.BAD_REQUEST)
     }
+
+    if (!validatePassword(password))
+        throw new AppError("Formato de contraseña inválido", HttpStatus.BAD_REQUEST);
 
     user.password = String(password)
     user.tempToken = undefined
@@ -130,8 +147,6 @@ export const newPassword = async (req, res) => {
 }
 
 // TODO: INSERTAR HTML AL CUERPO DEL CORREO ELECTRÓNICO
-
-
 export const verificationEmail = async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -165,7 +180,6 @@ export const verificationEmail = async (req, res) => {
 }
 
 export const register = async (req, res) => {
-
     const { email, code } = req.body
     if (!email || !code)
         throw new AppError("Datos incompletos", HttpStatus.BAD_REQUEST);
@@ -190,8 +204,4 @@ export const register = async (req, res) => {
         email: usuario.email,
         token
     });
-};
-
-export const cualquiera = async () => {
-    console.log("HOLA")
 }

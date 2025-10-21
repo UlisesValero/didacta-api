@@ -16,7 +16,5 @@ export const requestCacheSchema = new mongoose.Schema(
     },
     { versionKey: false }
 );
-// INFO TTL index: elimina automáticamente después de 10 minutos
-// requestCacheSchema.index({ createdAt: 1 }, { expireAfterSeconds: 600 })
 
 export const requestCacheModel = mongoose.model("RequestCache", requestCacheSchema, "request_cache")

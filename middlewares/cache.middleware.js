@@ -14,7 +14,6 @@ import { stableStringify } from "../utils/validation.utils.js";
  * https://chatgpt.com/share/68f1ced1-a764-8000-bc37-755f1fd4169b
  */
 export async function cacheMiddleware(req, res, next) {
-    if(!process.env.DIDACTA_ENV || process.env.DIDACTA_ENV == undefined) return next()
     // Skip if payload is too large
     const MAX_CONTENT_LENGTH = 1 * 1024 * 1024; // 1 MB
     const contentLength = parseInt(req.headers["content-length"] || "0", 10);

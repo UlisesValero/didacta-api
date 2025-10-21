@@ -7,7 +7,7 @@ import {
     newPassword,
     verificationEmail,
     register,
-    googleHint
+    googleHint,
 } from './auth.controller.js'
 const router = express.Router()
 
@@ -15,7 +15,7 @@ const router = express.Router()
 
 router.post('/login', login)
 router.post('/google', google)
-router.post('/google-hint', googleHint)
+router.get('/google-hint', googleHint)
 router.post('/reset-password', resetPassword)
 router.post('/new-password', newPassword)
 router.post("/verification-email", verificationEmail)

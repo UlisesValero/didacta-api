@@ -25,7 +25,6 @@ userSchema.pre("save", async function (next) {
     if (this.tempToken && !this.tempTokenExpire) this.tempTokenExpire = new Date(Date.now() + 15 * 60 * 1000)
     if (!this.tempToken && this.tempTokenExpire) this.tempTokenExpire = null
     this.pendingFrom = this.pending ? new Date() : null
-
     if (this.isModified("password") && this.password) {
         const salt = await bcrypt.genSalt(10)
         this.password = await bcrypt.hash(this.password, salt)
@@ -35,7 +34,7 @@ userSchema.pre("save", async function (next) {
 })
 
 userSchema.methods.comparePassword = async function (input) {
-    if (this.googleId) return false
+    if (this.googleId || !this.password) return false
     return await bcrypt.compare(input, this.password)
 }
 
