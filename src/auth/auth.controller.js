@@ -89,9 +89,9 @@ export const resetPassword = async (req, res) => {
     // TODO: ESTOY EN ESTO REDO, EL PROBLEMA AHORA MISMO ESTÁ EN LOS TOKENS. A REVISAR
     // if (user.tempToken) throw new AppError("Ya tenes un mail de restablecimiento pendiente", HttpStatus.BAD_REQUEST)
 
-    const token = jwtSign(user._id, "15m")
+    const token = jwtSign(user.email, "15m")
     user.tempToken = token
-    user.tempTokenExpire = new Date(Date.now() + 1 * 60 * 1000) //INFO: m, s, ms (mide ticks en ms)
+    user.tempTokenExpire = new Date(Date.now() + 5 * 60 * 1000) //INFO: m, s, ms (mide ticks en ms)
     await user.save()
 
     const resetLink = `${process.env.APP_URL}/new-password/${token}`
@@ -125,7 +125,7 @@ export const resetPassword = async (req, res) => {
             </a>
           </div>
           <p style="font-size:13px;color:#666;">
-            Este enlace expirará en <strong>1 minuto</strong>. Si no solicitaste este cambio, ignora este mensaje.
+            Este enlace expirará en <strong>5 minutos</strong>. Si no solicitaste este cambio, ignora este mensaje.
           </p>
         </td>
       </tr>
@@ -154,7 +154,7 @@ export const newPassword = async (req, res) => {
     }
 
     const decodedUser = jwtVerify(token)
-    const user = await userModel.findOne({ email: decodedUser.key.email })
+    const user = await userModel.findOne({ email: decodedUser.key })
 
     if (user?.tempTokenExpire && user.tempTokenExpire < new Date()) {
         user.tempToken = undefined

@@ -12,7 +12,7 @@ export const requestCacheSchema = new mongoose.Schema(
             headers: { type: Object, default: {} },
             body: { type: mongoose.Schema.Types.Mixed }, // can store string or object
         },
-        createdAt: { type: Date, default: Date.now, expires: 60 * 10 },
+        createdAt: { type: Date, default: Date.now, expires: 15 },
     },
     { versionKey: false }
 );
