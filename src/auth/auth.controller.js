@@ -86,6 +86,8 @@ export const resetPassword = async (req, res) => {
 
     const user = await userModel.findOne({ email })
     if (!user) throw new AppError("Usuario no encontrado", HttpStatus.NOT_FOUND)
+    // TODO: ESTOY EN ESTO REDO, EL PROBLEMA AHORA MISMO ESTÁ EN LOS TOKENS. A REVISAR
+    // if (user.tempToken) throw new AppError("Ya tenes un mail de restablecimiento pendiente", HttpStatus.BAD_REQUEST)
 
     const token = jwtSign(user._id, "15m")
     user.tempToken = token
@@ -98,13 +100,43 @@ export const resetPassword = async (req, res) => {
         to: email,
         subject: "Restablece tu contraseña - Didacta",
         html: `
-      <div style="font-family:Arial,sans-serif">
-        <h3>Restablecimiento de contraseña</h3>
-        <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
-        <a href="${resetLink}" target="_blank">${resetLink}</a>
-        <p>Este enlace expirará en 1 minuto.</p>
-      </div>
-    `,
+  <div style="margin:0;padding:0;background-color:#f4f4f4;">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:auto;font-family:Arial,Helvetica,sans-serif;color:#333;">
+      <tr>
+        <td align="center" bgcolor="#ffffff" style="padding:25px 10px 15px 10px;border-bottom:1px solid #ddd;">
+          <img src="https://cdn.didacta-ai.com/branding/Logo.png" 
+               alt="Didacta Logo" 
+               width="120" 
+               style="display:block;border:none;outline:none;text-decoration:none;height:auto;">
+        </td>
+      </tr>
+      <tr>
+        <td bgcolor="#ffffff" style="padding:30px 40px;">
+          <h2 style="margin-top:0;color:#222;">Restablecimiento de contraseña</h2>
+          <p style="font-size:15px;line-height:1.5;">
+            Recibimos una solicitud para restablecer tu contraseña en Didacta. 
+            Haz clic en el siguiente botón para continuar:
+          </p>
+          <div style="text-align:center;margin:30px 0;">
+            <a href="${resetLink}" target="_blank"
+              style="background-color:#0069d9;color:#ffffff;text-decoration:none;
+              padding:12px 24px;border-radius:6px;font-weight:600;font-size:15px;display:inline-block;">
+              Restablecer contraseña
+            </a>
+          </div>
+          <p style="font-size:13px;color:#666;">
+            Este enlace expirará en <strong>1 minuto</strong>. Si no solicitaste este cambio, ignora este mensaje.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td bgcolor="#f4f4f4" style="padding:15px;text-align:center;font-size:12px;color:#999;">
+          © ${new Date().getFullYear()} Didacta. Todos los derechos reservados.
+        </td>
+      </tr>
+    </table>
+  </div>
+  `,
     })
 
     if (!response.success) {

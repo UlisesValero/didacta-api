@@ -13,7 +13,7 @@ export const userSchema = new mongoose.Schema(
         tempToken: { type: String },
         tempTokenExpire: {
             type: Date,
-            default: () => new Date(Date.now() + 15 * 60 * 1000), // 15 min (info: La razón del default asi es porque se evalúa una sola vez al cargar el modelo, no en cada documento nuevo.)
+            default: () => new Date(Date.now() + 1 * 60 * 1000), // 1 min (info: La razón del default asi es porque se evalúa una sola vez al cargar el modelo, no en cada documento nuevo.)
         },
     },
     { timestamps: true }
