@@ -1,6 +1,28 @@
 import { writeFileSync, existsSync } from "fs";
 import { execSync } from "child_process";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import dotenv from 'dotenv'
+import path from 'path';
+
+const loadCustomEnv = () => {
+    try {
+        const isDev = process.env.DIDACTA_ENV !== "production";
+        const envPath = path.resolve(
+            process.cwd(),
+            isDev ? ".env.development" : ".env"
+        );
+
+        if (existsSync(envPath)) {
+            dotenv.config({ path: envPath, override: true })
+        }
+        else {
+            dotenv.config();
+        }
+        console.log(`✅ .env cargado en local.`)
+    } catch (error) {
+        throw (error)
+    }
+}
 
 async function readableToString(readable) {
     const chunks = [];
@@ -66,9 +88,9 @@ async function main() {
     console.log(`Sincronización completada (${envChoice}).`);
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((err) => {
-        console.error("Error general en sync-env:", err)
+(async () => {
+    main().then(() => loadCustomEnv()).catch(err => {
+        console.log('❌ Error al cargar .env:', err)
         process.exit(1)
     })
+})();
